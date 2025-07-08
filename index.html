@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Chatbot Avatar CMC</title>
+  <style>
+    body { font-family: Arial; margin: 0; background: #f4f6f8; }
+    header { background: #003366; padding: 10px; text-align: center; }
+    header img { height: 50px; }
+    .container { max-width: 900px; margin: auto; padding: 20px; text-align: center; }
+    video { max-width: 100%; border-radius: 10px; }
+    .input-container { margin-top: 15px; display: flex; gap: 10px; justify-content: center; }
+    input { padding: 10px; font-size: 16px; flex: 1; border-radius: 5px; border: 1px solid #ccc; }
+    button { background: #003366; color: white; border: none; padding: 10px; font-size: 20px; border-radius: 5px; cursor: pointer; }
+    button:hover { background: #0055aa; }
+    .chat-box { background: white; border-radius: 10px; padding: 15px; margin-top: 20px; height: 300px; overflow-y: auto; text-align: left; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .message { margin: 10px 0; }
+    .user { font-weight: bold; color: #003366; }
+    .bot { font-style: italic; color: #333; }
+    #loader { display: none; font-size: 18px; color: #007bff; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="assets/logo.png" alt="Logo CMC">
+  </header>
+  <div class="container">
+    <video id="avatar" src="assets/avatar.mp4" autoplay muted onended="this.pause()"></video>
+    <div class="input-container">
+      <input id="question" placeholder="Posez votre question" />
+      <button onclick="askQuestion()">📨</button>
+      <button onclick="startVoice()">🎙️</button>
+    </div>
+    <div id="loader">⏳ Chargement...</div>
+    <div class="chat-box" id="chatBox"></div>
+  </div>
+  <script>
+    function appendMessage(sender, message) {
+      const box = document.getElementById('chatBox');
+      const div = document.createElement('div');
+      div.className = 'message';
+      div.innerHTML = `<span class="${sender}">${sender === 'user' ? '👤 Vous' : '🤖 Bot'}:</span> ${message}`;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function askQuestion() {
+      const question = document.getElementById('question').value;
+      if (!question.trim()) return;
+      appendMessage('user', question);
+      document.getElementById('loader').style.display = 'block';
+      fetch('http://localhost:5000/api/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question })
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('loader').style.display = 'none';
+        appendMessage('bot', data.response);
+        document.getElementById('question').value = '';
+      });
+    }
+
+    function startVoice() {
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'fr-FR';
+      recognition.start();
+      recognition.onresult = function(event) {
+        document.getElementById('question').value = event.results[0][0].transcript;
+        askQuestion();
+      };
+    }
+  </script>
+</body>
+</html>
